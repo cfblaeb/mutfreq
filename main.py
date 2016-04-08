@@ -1,4 +1,4 @@
-from sam2df import bam2df
+from sam2df import sam2df
 import plots
 
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ try:
     df = pd.read_pickle("lowmut")
 except FileNotFoundError:
     align_fn = "/home/laeb/data/storage/NGS/others/Florian/bow/lowmut.bam"
-    df = bam2df(align_fn, fasta)
+    df = sam2df(align_fn, fasta)
     df.to_pickle("lowmut")
 
 

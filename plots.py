@@ -7,6 +7,7 @@ def coverage_plot(df):
     ax = df.T.sum().plot(title='Read depth per position')
     ax.set_ylabel("Read depth")
     ax.set_xlabel("Position")
+    ax.set_ylim(0)
     return ax
 
 

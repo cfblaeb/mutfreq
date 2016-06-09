@@ -1,26 +1,22 @@
-def set_fasta_index(df, fasta):
-    df['fasta'] = [nuc for nuc in fasta]
-    return df.set_index('fasta')
+from functions import set_fasta_index
 
 
-def coverage_plot(df):
-    ax = df.T.sum().plot(title='Read depth per position')
+def coverage_plot(df, ax):
+    df.T.sum().plot(ax=ax, title='Read depth per position')
     ax.set_ylabel("Read depth")
     ax.set_xlabel("Position")
     ax.set_ylim(0)
-    return ax
 
 
-def seq_plot(df, fasta, start, end):
+def seq_plot(df, ax, fasta, start, end):
     df = set_fasta_index(df, fasta)
 
-    ax = df[start:end].plot(kind='bar', stacked=True, title='seq plot')
+    df[start:end].plot(ax=ax, kind='bar', stacked=True, title='seq plot')
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_ylabel("Read depth")
-    return ax
 
 
-def mut_plot(df, fasta):
+def mut_plot(df, ax, fasta):
     df = set_fasta_index(df, fasta)
 
     df2 = (df.T / df.T.sum()).T
@@ -31,7 +27,6 @@ def mut_plot(df, fasta):
 
     df2['i'] = range(len(fasta))
     df3 = df2.set_index('i')
-    ax = df3.T.sum().plot(logy=True, title='Mutation frequency per position')
+    df3.T.sum().plot(ax=ax, logy=True, title='Mutation frequency per position')
     ax.set_xlabel('Position')
     ax.set_ylabel('Frequency of mutations (0 to 1, log scale)')
-    return ax

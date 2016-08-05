@@ -4,6 +4,7 @@ from os.path import basename, splitext, dirname
 from collections import defaultdict, Counter
 from Bio import SeqIO
 from re import findall
+import pandas as pd
 
 
 def format_mut(kind, **kwargs):
@@ -54,8 +55,21 @@ def run_bowtie2(ref_genome, fastqs):
 
 
 def parse_bowtie2_output(bt2_stdout, ref_genome):
-    read_pairs = defaultdict(set)
+    """
+    this parses the bowtie2 output into 2 different data structure. A mutation Counter, and a ref_seq mutation dataframe
+    :param bt2_stdout: SAM
+    :param ref_genome: path to ref genome
+    :return: (mutation Counter, ref_seq_mutation dataframe)
+    """
+
+    read_pairs = defaultdict(set) #this is for the mutation Counter
+
     ref_seq = str(next(SeqIO.parse(open(ref_genome), 'fasta')).seq)
+    #this is for the ref_seq mutation dataframe
+    dna_data = []
+    for x in range(len(ref_seq)):
+        dna_data.append({'A': 0, 'G': 0, 'C': 0, 'T': 0, 'N': 0, '+': 0, '^': 0})
+
     for i, out in enumerate(bt2_stdout.stdout.splitlines()):
         if i % 100000 == 0:
             print(i)
@@ -85,20 +99,32 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
                     if letter is 'M':
                         for spos, sfrom, sto in find_snps(ref_seq[refpos:], read[readpos:number]):
                             muts.append(format_mut('SNP', pos=refpos + spos, ref=sfrom, seq=sto))
+
+                        for ipos, inuc in enumerate(read[readpos:number]):  # go over the positions in the dna
+                            dna_data[refpos+ipos][inuc] += 1
+
                         refpos += number
                         readpos += number
                     #if letter = D, then just report deletion and increment refpos
                     elif letter is 'D':
                         muts.append(format_mut('DEL', pos=refpos, len=number))
+
+                        for x in range(number):
+                            #if refpos + x < len(dna_data):
+                            dna_data[refpos+x]['^'] += 1
+
                         refpos += number
                     #if letter = I, then report insertion and increment readpos
                     elif letter is 'I':
                         muts.append(format_mut('INS', pos=refpos, seq=read[readpos:readpos+number]))
+
+                        dna_data[refpos]['+'] += 1
+
                         readpos += number
 
                 # finally save the mutations
                 read_pairs[parts[0].strip()].update(muts)
 
     # Now you have a mutation set for each read, lets count them
-    return Counter([frozenset(x) for x in read_pairs.values()])
+    return Counter([frozenset(x) for x in read_pairs.values()]), pd.DataFrame(dna_data)
 

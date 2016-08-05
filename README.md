@@ -10,7 +10,9 @@ Each unique combination of mutations have a count, e.g.:
 (INS-4-AATG, SNP-34-A-T): 203
 
 I think it should be quite easy to go from this mutation counter to the old style summary
-That function will enable the old plot types to work, but for now, I will make a few ned plots
+That function will enable the old plot types to work.
+
+Ok made it. Now the functions in align.py outputs both new and old style.
 
 
 ##### 03.08.16

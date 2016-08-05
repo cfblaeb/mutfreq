@@ -1,13 +1,13 @@
 from functions import set_fasta_index
 
-
+#OLD STYLE PLOTS THAT REQUIRE OLD STYLE SUMMARY DF. USE (not yet made) FUNCTION TO CONVERT MuTATION COUNTER TO SUMMARY_DF
 def coverage_plot(df, ax):
     df.T.sum().plot(ax=ax, title='Read depth per position')
     ax.set_ylabel("Read depth")
     ax.set_xlabel("Position")
     ax.set_ylim(0)
 
-
+#OLD STYLE PLOTS THAT REQUIRE OLD STYLE SUMMARY DF. USE (not yet made) FUNCTION TO CONVERT MuTATION COUNTER TO SUMMARY_DF
 def seq_plot(df, ax, fasta, start, end):
     df = set_fasta_index(df, fasta)
 
@@ -15,7 +15,7 @@ def seq_plot(df, ax, fasta, start, end):
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_ylabel("Read depth")
 
-
+#OLD STYLE PLOTS THAT REQUIRE OLD STYLE SUMMARY DF. USE (not yet made) FUNCTION TO CONVERT MuTATION COUNTER TO SUMMARY_DF
 def mut_plot(df, ax, fasta):
     df = set_fasta_index(df, fasta)
 

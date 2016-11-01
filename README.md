@@ -1,5 +1,10 @@
 # README #
 
+##### Suggestions
+* I think the processing could be MUCH faster if you only process unique reads. E.g. use a counter object.<br>
+It MAY be as simple as making a counter on a list of frozensets containing the read(both parts of a pair?) and the cigar since these are the only parts used for processing.
+* Also dump the run_bowtie function and change the read_bowtie to read_sam
+
 ##### 05.08.16
 Ok made a new function that can read in paired end fastq, and align it to a ref
 That function returns the SAM output which you could do other stuff to, BUT

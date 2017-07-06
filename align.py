@@ -31,7 +31,7 @@ def find_snps(ref_seq, seq):
     """
     for ipos, iseq in enumerate(zip(ref_seq, seq)):
         if iseq[0] != iseq[1]:
-            yield(ipos, iseq[0], iseq[1])
+            yield (ipos, iseq[0], iseq[1])
 
 
 def run_bowtie2(ref_genome, fastqs):
@@ -42,16 +42,18 @@ def run_bowtie2(ref_genome, fastqs):
     :return: returns output of bowtie stdout
     """
     # create genome index in genome folder
-    run(shsplit("bowtie2-build {} {}".format(ref_genome, splitext(basename(ref_genome))[0])), cwd=dirname(ref_genome), stderr=open("bowtie2-build.log", 'w'))
+    run(shsplit("bowtie2-build {} {}".format(ref_genome, splitext(basename(ref_genome))[0])), cwd=dirname(ref_genome),
+        stderr=open("bowtie2-build.log", 'w'))
     # align reads
     # You may want:
     #  -N 1 (mismatches in seed alignment, default 0)
-    command = "bowtie2 -p 8 --very-sensitive --no-unal --no-head -x {} -1 {} -2 {}".format(
-                splitext(ref_genome)[0],
-                ",".join([x[0] for x in fastqs]),
-                ",".join([x[1] for x in fastqs]))
+    command = "bowtie2 -p 8 -D 20 -R 3 -N 1 -L 20 -i S,1,0.50 --no-unal --no-hd --no-sq -x {} -1 {} -2 {}".format(
+        splitext(ref_genome)[0],
+        ",".join([x[0] for x in fastqs]),
+        ",".join([x[1] for x in fastqs]))
 
-    return run(shsplit(command), stdout=PIPE, stderr=open("bowtie2.log", 'w'), cwd=dirname(ref_genome), universal_newlines=True)
+    return run(shsplit(command), stdout=PIPE, stderr=open(f"bowtie2_{fastqs[0][0].split('/')[-1]}.log", 'w'),
+               cwd=dirname(ref_genome), universal_newlines=True)
 
 
 def parse_bowtie2_output(bt2_stdout, ref_genome):
@@ -62,10 +64,10 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
     :return: (mutation Counter, ref_seq_mutation dataframe)
     """
 
-    read_pairs = defaultdict(set) #this is for the mutation Counter
+    read_pairs = defaultdict(set)  # this is for the mutation Counter
 
     ref_seq = str(next(SeqIO.parse(open(ref_genome), 'fasta')).seq)
-    #this is for the ref_seq mutation dataframe
+    # this is for the ref_seq mutation dataframe
     dna_data = []
     for x in range(len(ref_seq)):
         dna_data.append({'A': 0, 'G': 0, 'C': 0, 'T': 0, 'N': 0, '+': 0, '^': 0})
@@ -73,58 +75,60 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
     for i, out in enumerate(bt2_stdout.stdout.splitlines()):
         if i % 100000 == 0:
             print(i)
-        #if i > 100000:
+        # if i > 100000:
         #    break
         parts = out.split("\t")
         alignment_flag = int(parts[1].strip())
         if alignment_flag in [83, 99, 147, 163]:  # good alignment
-            cigar = parts[5].strip()         # cigar which will tell about indels
-            read = parts[9].strip()           # the aligned sequence
-            MD = parts[17].strip()[5:]           # MD which will tell of snps and deletions
+            refpos = int(parts[3].strip()) - 1  # position of alignment (sam is 1 based!!!)
+        cigar = parts[5].strip()  # cigar which will tell about indels
+        read = parts[9].strip()  # the aligned sequence
+        MD = parts[17].strip()[5:]  # MD which will tell of snps and deletions
+        # create a list of SNPs, inserts and deletions.
+        if str(cigar[:-1]) == str(MD) == str(len(read)):  # if WT
+            read_pairs[parts[0].strip()].update([])  # just update mut counter
+            for ipos, inuc in enumerate(read):
+                dna_data[refpos + ipos][inuc] += 1  # and dna_data
+        else:
+            muts = []  # list of mutations
+            # figure out gross things from cigar and SNPs from MD
 
-            # create a list of SNPs, inserts and deletions.
-            if str(cigar[:-1]) == str(MD) == str(len(read)):  # if WT
-                read_pairs[parts[0].strip()].update([])
-            else:
-                muts = []  # list of mutations
-                # figure out gross things from cigar and SNPs from MD
-                refpos = int(parts[3].strip())-1  # position of alignment (sam is 1 based!!!)
-                readpos = 0
-                # should probably test the cigar string for characters other than MDI....
-                for segment in findall("\d+[MDI]", cigar): #split on m's, d's and i's. Better hope theres no soft clipping....
-                    #go over each segment and split the number from the letter
-                    letter = segment[-1]
-                    number = int(segment[:-1])
-                    #if letter = M, then look for SNPS and increment refpos and readpos by number
-                    if letter is 'M':
-                        for spos, sfrom, sto in find_snps(ref_seq[refpos:], read[readpos:number]):
-                            muts.append(format_mut('SNP', pos=refpos + spos, ref=sfrom, seq=sto))
+            readpos = 0
+            # should probably test the cigar string for characters other than MDI....
+            for segment in findall("\d+[MDI]",
+                                   cigar):  # split on m's, d's and i's. Better hope theres no soft clipping....
+                # go over each segment and split the number from the letter
+                letter = segment[-1]
+                number = int(segment[:-1])
+                # if letter = M, then look for SNPS and increment refpos and readpos by number
+                if letter is 'M':
+                    for spos, sfrom, sto in find_snps(ref_seq[refpos:], read[readpos:number]):
+                        muts.append(format_mut('SNP', pos=refpos + spos, ref=sfrom, seq=sto))
 
-                        for ipos, inuc in enumerate(read[readpos:number]):  # go over the positions in the dna
-                            dna_data[refpos+ipos][inuc] += 1
+                    for ipos, inuc in enumerate(read[readpos:number]):  # go over the positions in the dna
+                        dna_data[refpos + ipos][inuc] += 1
 
-                        refpos += number
-                        readpos += number
-                    #if letter = D, then just report deletion and increment refpos
-                    elif letter is 'D':
-                        muts.append(format_mut('DEL', pos=refpos, len=number))
+                    refpos += number
+                    readpos += number
+                # if letter = D, then just report deletion and increment refpos
+                elif letter is 'D':
+                    muts.append(format_mut('DEL', pos=refpos, len=number))
 
-                        for x in range(number):
-                            #if refpos + x < len(dna_data):
-                            dna_data[refpos+x]['^'] += 1
+                    for x in range(number):
+                        # if refpos + x < len(dna_data):
+                        dna_data[refpos + x]['^'] += 1
 
-                        refpos += number
-                    #if letter = I, then report insertion and increment readpos
-                    elif letter is 'I':
-                        muts.append(format_mut('INS', pos=refpos, seq=read[readpos:readpos+number]))
+                    refpos += number
+                # if letter = I, then report insertion and increment readpos
+                elif letter is 'I':
+                    muts.append(format_mut('INS', pos=refpos, seq=read[readpos:readpos + number]))
 
-                        dna_data[refpos]['+'] += 1
+                    dna_data[refpos]['+'] += 1
 
-                        readpos += number
+                    readpos += number
 
-                # finally save the mutations
-                read_pairs[parts[0].strip()].update(muts)
+            # finally save the mutations
+            read_pairs[parts[0].strip()].update(muts)
 
     # Now you have a mutation set for each read, lets count them
     return Counter([frozenset(x) for x in read_pairs.values()]), pd.DataFrame(dna_data)
-

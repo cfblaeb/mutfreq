@@ -27,7 +27,7 @@ def mut_plot_sum(df, ax, fasta):
 
     df2['i'] = range(len(fasta))
     df3 = df2.set_index('i')
-    df3.T.sum().plot(ax=ax, logy=True, title='Mutation frequency per position')
+    df3.T.sum().plot(ax=ax, logy=True)#, title='Mutation frequency per position')
     ax.set_xlabel('Position')
     ax.set_ylabel('Frequency of mutations')
 
@@ -43,6 +43,6 @@ def mut_plot(df, ax, fasta):
 
     df2['i'] = range(len(fasta))
     df3 = df2.set_index('i')
-    df3.plot(ax=ax, kind='bar', stacked=True, title='Mutation frequency per position')
+    df3.plot(ax=ax, kind='bar', stacked=True)#, title='Mutation frequency per position')
     ax.set_xlabel('Position')
     ax.set_ylabel('Frequency of mutations')

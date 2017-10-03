@@ -1,7 +1,13 @@
-from functions import set_fasta_index
+from mutfreq.functions import set_fasta_index
 
 
 def coverage_plot(df, ax):
+    """
+    A plot showing read depth per position
+    :param df: a mutfreq dataframe
+    :param ax: a matplotlib axes object
+
+    """
     df.T.sum().plot(ax=ax, title='Read depth per position')
     ax.set_ylabel("Read depth")
     ax.set_xlabel("Position")
@@ -9,6 +15,15 @@ def coverage_plot(df, ax):
 
 
 def seq_plot(df, ax, fasta, start, end):
+    """
+    A stacked bar chart showing the read distribution at every position between pos start and end
+    :param df:
+    :param ax:
+    :param fasta:
+    :param start:
+    :param end:
+    :return:
+    """
     df = set_fasta_index(df.copy(), fasta)
 
     df[start:end].plot(ax=ax, kind='bar', stacked=True, title='seq plot')
@@ -17,6 +32,13 @@ def seq_plot(df, ax, fasta, start, end):
 
 
 def mut_plot_sum(df, ax, fasta):
+    """
+
+    :param df:
+    :param ax:
+    :param fasta:
+    :return:
+    """
     df = set_fasta_index(df.copy(), fasta)
 
     df2 = (df.T / df.T.sum()).T

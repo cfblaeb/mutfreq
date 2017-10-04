@@ -60,7 +60,7 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
     """
     this parses the bowtie2 output into 2 different data structure. A mutation Counter, and a ref_seq mutation dataframe
     :param bt2_stdout: SAM
-    :param ref_genome: path to ref genome
+    :param ref_genome: path to ref genome in fasta format. Only first entry in fasta file will be used
     :return: (mutation Counter, ref_seq_mutation dataframe)
     """
 
@@ -84,9 +84,10 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
             cigar = parts[5].strip()  # cigar which will tell about indels
             read = parts[9].strip()  # the aligned sequence
             MD = parts[17].strip()[5:]  # MD which will tell of snps and deletions
+
             # create a list of SNPs, inserts and deletions.
             if str(cigar[:-1]) == str(MD) == str(len(read)):  # if WT
-                read_pairs[parts[0].strip()].update([])  # just update mut counter
+                read_pairs[parts[0].strip()].update([])  # just update mut counter with a WT (empty set)
                 for ipos, inuc in enumerate(read):
                     dna_data[refpos + ipos][inuc] += 1  # and dna_data
             else:
@@ -95,8 +96,7 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
 
                 readpos = 0
                 # should probably test the cigar string for characters other than MDI....
-                for segment in findall("\d+[MDI]",
-                                       cigar):  # split on m's, d's and i's. Better hope theres no soft clipping....
+                for segment in findall("\d+[MDI]", cigar):  # split on m's, d's and i's. Better hope theres no soft clipping....
                     # go over each segment and split the number from the letter
                     letter = segment[-1]
                     number = int(segment[:-1])
@@ -108,7 +108,7 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
                         for ipos, inuc in enumerate(read[readpos:number]):  # go over the positions in the dna
                             dna_data[refpos + ipos][inuc] += 1
 
-                        refpos += number
+                        refpos += number  # ref and read pos moves forward
                         readpos += number
                     # if letter = D, then just report deletion and increment refpos
                     elif letter is 'D':
@@ -118,14 +118,14 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
                             # if refpos + x < len(dna_data):
                             dna_data[refpos + x]['^'] += 1
 
-                        refpos += number
+                        refpos += number  # only reference moves forward
                     # if letter = I, then report insertion and increment readpos
                     elif letter is 'I':
                         muts.append(format_mut('INS', pos=refpos, seq=read[readpos:readpos + number]))
 
                         dna_data[refpos]['+'] += 1
 
-                        readpos += number
+                        readpos += number  # only read post moves forward
 
                 # finally save the mutations
                 read_pairs[parts[0].strip()].update(muts)

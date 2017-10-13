@@ -1,10 +1,10 @@
-from subprocess import run, PIPE
+from subprocess import run
 from shlex import split as shsplit
-from os.path import basename, splitext, dirname
 from collections import defaultdict, Counter
 from Bio import SeqIO
 from re import findall
 import pandas as pd
+from gzip import open as gzopen
 
 
 def format_mut(kind, **kwargs):
@@ -124,3 +124,35 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
 
         # Now you have a mutation set for each read, lets count them
     return Counter([frozenset(x) for x in read_pairs.values()]), pd.DataFrame(dna_data)
+
+
+def read_flash_merged(fastq, ref_seq, qual_threshold):
+    variants = Counter()
+    qual_threshold += 33  # phred33
+    blocksize = 4  # read each block in fastq
+    with gzopen(fastq) as f:
+        for i, line in enumerate(f.readlines()):
+            if i % 100000 == 0:
+                print(i/4)
+            ln = i % blocksize
+            if ln == 1:
+                seq = line.decode().strip()
+            elif ln == 3:
+                if len(seq) == len(ref_seq):  # skip if length != len(ref_fasta)
+                    # skip if any quality is worse than qual_threshold
+                    qual_good = True
+                    for q in line.strip():
+                        if q < qual_threshold:
+                            qual_good = False
+                            print(line)
+                            break
+                    if qual_good:
+                        if seq == ref_seq:  # check if WT
+                            variants.update(("WT", ))
+                        else:  # else discover SNPs
+                            variants.update(("SNP",))
+                    else:
+                        variants.update(("low_qual", ))
+                else:
+                    variants.update(("indel", ))
+    return variants

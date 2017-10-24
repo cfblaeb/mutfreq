@@ -25,5 +25,5 @@ This project is for analysing mutations in amplicons
   * Anything with a CIGAR string that doesnt match f"{merged_read_length}M" (but count them still for QA)
   
 # NOTES TO SELF:
-Looks like low quality scores are unavoidable....
+Looks like low quality scores are unavoidable, especially due to bad reverse reads....
 Think about whether it makes sense to filter on quality or only on copy numbers....noise should be MUCH lower and you should be able to do that thing where you look at the jump in mean read count as you filter on higher and higher copy numbers.

@@ -126,12 +126,13 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
     return Counter([frozenset(x) for x in read_pairs.values()]), pd.DataFrame(dna_data)
 
 
-def read_flash_merged(fastq: str, ref_seq: str, qual_threshold: float) -> Counter:
+def read_flash_merged(fastq: str, ref_seq: str, qual_threshold: float, allow_N: bool=False) -> Counter:
     """
 
     :param fastq: the path in str format to a merged fastq
     :param ref_seq: the reference sequence in str format
     :param qual_threshold: the minimum mean quality threshold
+    :param allow_N: keep (true) or remove (false) all sequences with N
     :return: counter
     """
     variants = Counter()
@@ -161,6 +162,8 @@ def read_flash_merged(fastq: str, ref_seq: str, qual_threshold: float) -> Counte
                         seq = seq.decode()
                         if seq == ref_seq:  # check if WT
                             variants.update(("WT", ))
+                        elif allow_N is False and 'N' in seq:  # check for N in seq
+                            variants.update(("NinSeq", ))
                         else:  # else discover SNPs
                             variants.update((frozenset(f"{i}{x}>{y}" for i, (x, y) in enumerate(zip(ref_seq, seq)) if x != y),))
                     else:

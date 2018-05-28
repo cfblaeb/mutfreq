@@ -7,12 +7,12 @@ import pandas as pd
 from gzip import open as gzopen
 
 
-def format_mut(kind, **kwargs):
+def format_mut(kind: str, **kwargs):
     """
     format the mutations in a systematic way
     :param kind: SNP, DEL or INS
     :param kwargs: depending on kind, but all require pos, SNP and INS require seq, and DEL requires len and SNP requires ref
-    :return: a systematically formated mutation string
+    :return: a systematically formatted mutation string
     """
     if kind == 'SNP':
         return "SNP_{}_{}_{}".format(kwargs['pos'], kwargs['ref'], kwargs['seq'])
@@ -24,10 +24,10 @@ def format_mut(kind, **kwargs):
 
 def find_snps(ref_seq, seq):
     """
-    Will compare 2 sequences and return a tubple for every mismatch (pos, seq1, seq2)
+    Will compare 2 sequences and return a tuple for every mismatch (pos, seq1, seq2)
     :param ref_seq: a str
     :param seq: a str
-    :return: list of tubles with info on mismatches
+    :return: list of tuples with info on mismatches
     """
     for ipos, iseq in enumerate(zip(ref_seq, seq)):
         if iseq[0] != iseq[1]:
@@ -40,7 +40,7 @@ def run_bowtie2(ref_index: str, fastqs: list, output_name: str, bowtie2_flags="-
     :param ref_index: name of the bowtie2 index to use
     :param fastqs: list of read pairs [(read1_1_fwd.fastq, read1_2_fwd.fastq),(read2_1_rev.fastq, read2_2_rev.fastq)]
     :param bowtie2_flags: Bowtie2 will be run with "--end-to-end --no-unal --no-hd --no-sq -x {ref_index} -1 {fwd reads} -2 {rev reads} -S {output_name}
-    :return: return code of run, 0 = succesfull
+    :return: return code of run, 0 = successful
     """
 
     command = f"bowtie2 {bowtie2_flags} --end-to-end --no-unal --no-hd --no-sq -x {ref_index} -1 {','.join([x[0] for x in fastqs])} -2 {','.join([x[1] for x in fastqs])} -S {output_name}"

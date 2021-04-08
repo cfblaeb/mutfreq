@@ -67,8 +67,10 @@ def parse_bowtie2_output(bt2_stdout, ref_genome):
         for i, out in enumerate(f.readlines()):
             if i % 100000 == 0:
                 print(i)
-            # if i > 100000:
+            # if i > 100000:  # for quicker testing
             #    break
+            if out[0] == '@':  # skip headers
+                continue
             parts = out.split("\t")
             alignment_flag = int(parts[1].strip())
             if alignment_flag in [83, 99, 147, 163]:  # good alignment
